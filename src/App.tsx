@@ -107,9 +107,26 @@ export default function App() {
     ];
 
     const unsubscribes = collections.map(({ name, setter, loaded }) => 
-      onSnapshot(doc(db, "data", name), (doc) => {
-        if (doc.exists()) {
-          setter(doc.data().value);
+      onSnapshot(doc(db, "data", name), async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          setter(docSnapshot.data().value);
+          loaded.current = true;
+        } else {
+          // Initialize with default value if it doesn't exist
+          const initialValue = 
+            name === "siswa" ? initialSiswa :
+            name === "guru" ? initialGuru :
+            name === "pegawai" ? initialPegawai :
+            name === "kelas" ? initialKelas :
+            name === "suratMasuk" ? initialSuratMasuk :
+            name === "suratKeluar" ? initialSuratKeluar :
+            name === "arsip" ? initialArsip :
+            name === "inventaris" ? initialInventaris :
+            name === "users" ? initialUsers :
+            defaultSettings;
+          
+          await setDoc(doc(db, "data", name), { value: initialValue });
+          setter(initialValue);
           loaded.current = true;
         }
       })
