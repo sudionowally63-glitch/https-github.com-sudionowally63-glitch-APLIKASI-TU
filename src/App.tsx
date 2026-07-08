@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   LayoutDashboard, Users, GraduationCap, Briefcase, BookOpen, Mail, Archive, Package, UserCheck, Settings, LogOut, Clock, Calendar, Menu, X, Landmark, Lock, ShieldAlert, FileText
 } from "lucide-react";
 import { db } from "./lib/firebase";
 import { collection, doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+
+// ... (existing imports and component structure) ...
 
 // Views Imports
 import DashboardView from "./components/DashboardView";
@@ -42,15 +44,25 @@ export default function App() {
 
   // DB States
   const [siswa, setSiswa] = useState<Siswa[]>(initialSiswa);
+  const siswaLoaded = useRef(false);
   const [guru, setGuru] = useState<Guru[]>(initialGuru);
+  const guruLoaded = useRef(false);
   const [pegawai, setPegawai] = useState<Pegawai[]>(initialPegawai);
+  const pegawaiLoaded = useRef(false);
   const [kelas, setKelas] = useState<Kelas[]>(initialKelas);
+  const kelasLoaded = useRef(false);
   const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(initialSuratMasuk);
+  const suratMasukLoaded = useRef(false);
   const [suratKeluar, setSuratKeluar] = useState<SuratKeluar[]>(initialSuratKeluar);
+  const suratKeluarLoaded = useRef(false);
   const [arsip, setArsip] = useState<Arsip[]>(initialArsip);
+  const arsipLoaded = useRef(false);
   const [inventaris, setInventaris] = useState<Inventaris[]>(initialInventaris);
+  const inventarisLoaded = useRef(false);
   const [users, setUsers] = useState<User[]>(initialUsers);
+  const usersLoaded = useRef(false);
   const [settings, setSettings] = useState<Setting>(defaultSettings);
+  const settingsLoaded = useRef(false);
 
   // UI Control States
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -82,22 +94,23 @@ export default function App() {
   // Synchronize Firestore
   useEffect(() => {
     const collections = [
-      { name: "siswa", setter: setSiswa },
-      { name: "guru", setter: setGuru },
-      { name: "pegawai", setter: setPegawai },
-      { name: "kelas", setter: setKelas },
-      { name: "suratMasuk", setter: setSuratMasuk },
-      { name: "suratKeluar", setter: setSuratKeluar },
-      { name: "arsip", setter: setArsip },
-      { name: "inventaris", setter: setInventaris },
-      { name: "users", setter: setUsers },
-      { name: "settings", setter: setSettings },
+      { name: "siswa", setter: setSiswa, loaded: siswaLoaded },
+      { name: "guru", setter: setGuru, loaded: guruLoaded },
+      { name: "pegawai", setter: setPegawai, loaded: pegawaiLoaded },
+      { name: "kelas", setter: setKelas, loaded: kelasLoaded },
+      { name: "suratMasuk", setter: setSuratMasuk, loaded: suratMasukLoaded },
+      { name: "suratKeluar", setter: setSuratKeluar, loaded: suratKeluarLoaded },
+      { name: "arsip", setter: setArsip, loaded: arsipLoaded },
+      { name: "inventaris", setter: setInventaris, loaded: inventarisLoaded },
+      { name: "users", setter: setUsers, loaded: usersLoaded },
+      { name: "settings", setter: setSettings, loaded: settingsLoaded },
     ];
 
-    const unsubscribes = collections.map(({ name, setter }) => 
+    const unsubscribes = collections.map(({ name, setter, loaded }) => 
       onSnapshot(doc(db, "data", name), (doc) => {
         if (doc.exists()) {
           setter(doc.data().value);
+          loaded.current = true;
         }
       })
     );
@@ -105,42 +118,52 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!siswaLoaded.current) return;
     setDoc(doc(db, "data", "siswa"), { value: siswa });
   }, [siswa]);
 
   useEffect(() => {
+    if (!guruLoaded.current) return;
     setDoc(doc(db, "data", "guru"), { value: guru });
   }, [guru]);
 
   useEffect(() => {
+    if (!pegawaiLoaded.current) return;
     setDoc(doc(db, "data", "pegawai"), { value: pegawai });
   }, [pegawai]);
 
   useEffect(() => {
+    if (!kelasLoaded.current) return;
     setDoc(doc(db, "data", "kelas"), { value: kelas });
   }, [kelas]);
 
   useEffect(() => {
+    if (!suratMasukLoaded.current) return;
     setDoc(doc(db, "data", "suratMasuk"), { value: suratMasuk });
   }, [suratMasuk]);
 
   useEffect(() => {
+    if (!suratKeluarLoaded.current) return;
     setDoc(doc(db, "data", "suratKeluar"), { value: suratKeluar });
   }, [suratKeluar]);
 
   useEffect(() => {
+    if (!arsipLoaded.current) return;
     setDoc(doc(db, "data", "arsip"), { value: arsip });
   }, [arsip]);
 
   useEffect(() => {
+    if (!inventarisLoaded.current) return;
     setDoc(doc(db, "data", "inventaris"), { value: inventaris });
   }, [inventaris]);
 
   useEffect(() => {
+    if (!usersLoaded.current) return;
     setDoc(doc(db, "data", "users"), { value: users });
   }, [users]);
 
   useEffect(() => {
+    if (!settingsLoaded.current) return;
     setDoc(doc(db, "data", "settings"), { value: settings });
   }, [settings]);
 
@@ -594,9 +617,9 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Desktop Sync Badge */}
-            <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-              <span>SINKRON LOKAL</span>
+            <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-emerald-700">TERHUBUNG CLOUD</span>
             </div>
 
             {/* Principal Signature Information Tag */}
