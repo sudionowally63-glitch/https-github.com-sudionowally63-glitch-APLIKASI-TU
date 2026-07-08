@@ -1,0 +1,6 @@
+{
+  "name": "Administrasi Tata Usaha SMPN 4 Fakfak",
+  "description": "Aplikasi Administrasi Tata Usaha Sekolah Modern untuk SMP Negeri 4 Fakfak dengan manajemen data siswa, guru, pegawai TU, kelas, surat, arsip, inventaris, dan pengguna.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
