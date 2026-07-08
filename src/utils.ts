@@ -1,6 +1,6 @@
 import { utils as xlsxUtils, writeFile } from "xlsx";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { Setting } from "./types";
 
 // Map religion 10-digit codes to human labels
@@ -174,7 +174,7 @@ export function exportToPDF(
   doc.text(title.toUpperCase(), doc.internal.pageSize.width / 2, contentStartY + 5, { align: "center" });
 
   // 3. Render Table
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: contentStartY + 10,
     head: [columns],
     body: rows,

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { 
   LayoutDashboard, Users, GraduationCap, Briefcase, BookOpen, Mail, Archive, Package, UserCheck, Settings, LogOut, Clock, Calendar, Menu, X, Landmark, Lock, ShieldAlert, FileText
 } from "lucide-react";
+import { db } from "./lib/firebase";
+import { collection, doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
 // Views Imports
 import DashboardView from "./components/DashboardView";
@@ -39,46 +41,16 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
 
   // DB States
-  const [siswa, setSiswa] = useState<Siswa[]>(() => {
-    const saved = localStorage.getItem("tu_db_siswa");
-    return saved ? JSON.parse(saved) : initialSiswa;
-  });
-  const [guru, setGuru] = useState<Guru[]>(() => {
-    const saved = localStorage.getItem("tu_db_guru");
-    return saved ? JSON.parse(saved) : initialGuru;
-  });
-  const [pegawai, setPegawai] = useState<Pegawai[]>(() => {
-    const saved = localStorage.getItem("tu_db_pegawai");
-    return saved ? JSON.parse(saved) : initialPegawai;
-  });
-  const [kelas, setKelas] = useState<Kelas[]>(() => {
-    const saved = localStorage.getItem("tu_db_kelas");
-    return saved ? JSON.parse(saved) : initialKelas;
-  });
-  const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(() => {
-    const saved = localStorage.getItem("tu_db_surat_masuk");
-    return saved ? JSON.parse(saved) : initialSuratMasuk;
-  });
-  const [suratKeluar, setSuratKeluar] = useState<SuratKeluar[]>(() => {
-    const saved = localStorage.getItem("tu_db_surat_keluar");
-    return saved ? JSON.parse(saved) : initialSuratKeluar;
-  });
-  const [arsip, setArsip] = useState<Arsip[]>(() => {
-    const saved = localStorage.getItem("tu_db_arsip");
-    return saved ? JSON.parse(saved) : initialArsip;
-  });
-  const [inventaris, setInventaris] = useState<Inventaris[]>(() => {
-    const saved = localStorage.getItem("tu_db_inventaris");
-    return saved ? JSON.parse(saved) : initialInventaris;
-  });
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem("tu_db_users");
-    return saved ? JSON.parse(saved) : initialUsers;
-  });
-  const [settings, setSettings] = useState<Setting>(() => {
-    const saved = localStorage.getItem("tu_db_settings");
-    return saved ? JSON.parse(saved) : defaultSettings;
-  });
+  const [siswa, setSiswa] = useState<Siswa[]>(initialSiswa);
+  const [guru, setGuru] = useState<Guru[]>(initialGuru);
+  const [pegawai, setPegawai] = useState<Pegawai[]>(initialPegawai);
+  const [kelas, setKelas] = useState<Kelas[]>(initialKelas);
+  const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(initialSuratMasuk);
+  const [suratKeluar, setSuratKeluar] = useState<SuratKeluar[]>(initialSuratKeluar);
+  const [arsip, setArsip] = useState<Arsip[]>(initialArsip);
+  const [inventaris, setInventaris] = useState<Inventaris[]>(initialInventaris);
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [settings, setSettings] = useState<Setting>(defaultSettings);
 
   // UI Control States
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -107,45 +79,69 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Save states to LocalStorage on updates
+  // Synchronize Firestore
   useEffect(() => {
-    localStorage.setItem("tu_db_siswa", JSON.stringify(siswa));
+    const collections = [
+      { name: "siswa", setter: setSiswa },
+      { name: "guru", setter: setGuru },
+      { name: "pegawai", setter: setPegawai },
+      { name: "kelas", setter: setKelas },
+      { name: "suratMasuk", setter: setSuratMasuk },
+      { name: "suratKeluar", setter: setSuratKeluar },
+      { name: "arsip", setter: setArsip },
+      { name: "inventaris", setter: setInventaris },
+      { name: "users", setter: setUsers },
+      { name: "settings", setter: setSettings },
+    ];
+
+    const unsubscribes = collections.map(({ name, setter }) => 
+      onSnapshot(doc(db, "data", name), (doc) => {
+        if (doc.exists()) {
+          setter(doc.data().value);
+        }
+      })
+    );
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, []);
+
+  useEffect(() => {
+    setDoc(doc(db, "data", "siswa"), { value: siswa });
   }, [siswa]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_guru", JSON.stringify(guru));
+    setDoc(doc(db, "data", "guru"), { value: guru });
   }, [guru]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_pegawai", JSON.stringify(pegawai));
+    setDoc(doc(db, "data", "pegawai"), { value: pegawai });
   }, [pegawai]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_kelas", JSON.stringify(kelas));
+    setDoc(doc(db, "data", "kelas"), { value: kelas });
   }, [kelas]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_surat_masuk", JSON.stringify(suratMasuk));
+    setDoc(doc(db, "data", "suratMasuk"), { value: suratMasuk });
   }, [suratMasuk]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_surat_keluar", JSON.stringify(suratKeluar));
+    setDoc(doc(db, "data", "suratKeluar"), { value: suratKeluar });
   }, [suratKeluar]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_arsip", JSON.stringify(arsip));
+    setDoc(doc(db, "data", "arsip"), { value: arsip });
   }, [arsip]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_inventaris", JSON.stringify(inventaris));
+    setDoc(doc(db, "data", "inventaris"), { value: inventaris });
   }, [inventaris]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_users", JSON.stringify(users));
+    setDoc(doc(db, "data", "users"), { value: users });
   }, [users]);
 
   useEffect(() => {
-    localStorage.setItem("tu_db_settings", JSON.stringify(settings));
+    setDoc(doc(db, "data", "settings"), { value: settings });
   }, [settings]);
 
   // LOGIN EXECUTION
