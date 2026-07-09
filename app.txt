@@ -1,1 +1,1 @@
-DEPLOY_URL=https:
+DEPLOY_URL=

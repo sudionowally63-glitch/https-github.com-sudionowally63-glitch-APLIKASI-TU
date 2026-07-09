@@ -134,42 +134,52 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!siswaLoaded.current) return;
     setDoc(doc(db, "data", "siswa"), { value: siswa });
   }, [siswa]);
 
   useEffect(() => {
+    if (!guruLoaded.current) return;
     setDoc(doc(db, "data", "guru"), { value: guru });
   }, [guru]);
 
   useEffect(() => {
+    if (!pegawaiLoaded.current) return;
     setDoc(doc(db, "data", "pegawai"), { value: pegawai });
   }, [pegawai]);
 
   useEffect(() => {
+    if (!kelasLoaded.current) return;
     setDoc(doc(db, "data", "kelas"), { value: kelas });
   }, [kelas]);
 
   useEffect(() => {
+    if (!suratMasukLoaded.current) return;
     setDoc(doc(db, "data", "suratMasuk"), { value: suratMasuk });
   }, [suratMasuk]);
 
   useEffect(() => {
+    if (!suratKeluarLoaded.current) return;
     setDoc(doc(db, "data", "suratKeluar"), { value: suratKeluar });
   }, [suratKeluar]);
 
   useEffect(() => {
+    if (!arsipLoaded.current) return;
     setDoc(doc(db, "data", "arsip"), { value: arsip });
   }, [arsip]);
 
   useEffect(() => {
+    if (!inventarisLoaded.current) return;
     setDoc(doc(db, "data", "inventaris"), { value: inventaris });
   }, [inventaris]);
 
   useEffect(() => {
+    if (!usersLoaded.current) return;
     setDoc(doc(db, "data", "users"), { value: users });
   }, [users]);
 
   useEffect(() => {
+    if (!settingsLoaded.current) return;
     setDoc(doc(db, "data", "settings"), { value: settings })
       .catch(err => console.error("Error saving settings:", err));
   }, [settings]);
