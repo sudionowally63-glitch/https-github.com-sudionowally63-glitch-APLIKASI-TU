@@ -7,8 +7,8 @@ export const defaultSettings: Setting = {
   nipKepsek: "197508122003121002",
   tempatTtd: "Fakfak",
   tanggalTtd: "2026-07-08",
-  kopSekolah: "", // Empty by default to trigger the elegant vector-drawn official header
-  logoSekolah: "" // Empty by default to use default emblem / Tut Wuri / Landmark
+  kopSekolah: "https://i.imgur.com/GgreFPO.png ", // Empty by default to trigger the elegant vector-drawn official header
+  logoSekolah: "https://i.imgur.com/kvJVhHQ.png " // Empty by default to use default emblem / Tut Wuri / Landmark
 };
 
 // Initial Users
