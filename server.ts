@@ -43,7 +43,7 @@ async function startServer() {
     try {
       const appUrl = getAppUrl();
       if (!appUrl) {
-        return res.status(500).json({ error: "Google Apps Script URL not configured in app.txt" });
+        return res.json({ error: "Google Apps Script URL not configured in app.txt" });
       }
       
       const data = await fetchGoogleAppsScript(appUrl, {
@@ -54,7 +54,7 @@ async function startServer() {
       
       res.json(data);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.json({ error: error.message });
     }
   });
 
@@ -63,8 +63,8 @@ async function startServer() {
     try {
       const appUrl = getAppUrl();
       res.json({ url: appUrl });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.json({ error: error.message });
     }
   });
 
@@ -73,12 +73,12 @@ async function startServer() {
     try {
       const { url } = req.body;
       if (url === undefined) {
-        return res.status(400).json({ error: "Missing 'url' parameter" });
+        return res.json({ error: "Missing 'url' parameter" });
       }
       fs.writeFileSync("app.txt", `DEPLOY_URL=${url.trim()}`, "utf8");
       res.json({ status: "success", url: url.trim() });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.json({ error: error.message });
     }
   });
 
@@ -86,7 +86,7 @@ async function startServer() {
     try {
       const appUrl = getAppUrl();
       if (!appUrl) {
-        return res.status(500).json({ error: "Google Apps Script URL not configured in app.txt" });
+        return res.json({ error: "Google Apps Script URL not configured in app.txt" });
       }
       
       const key = req.query.key;
@@ -95,7 +95,7 @@ async function startServer() {
       const data = await fetchGoogleAppsScript(url);
       res.json(data);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.json({ error: error.message });
     }
   });
 
