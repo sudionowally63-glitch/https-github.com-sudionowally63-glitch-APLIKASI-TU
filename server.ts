@@ -32,7 +32,7 @@ async function startServer() {
       return JSON.parse(text);
     } catch (parseError) {
       if (text.trim().startsWith("<") || text.includes("<html") || text.includes("<HTML") || text.includes("The page")) {
-        throw new Error("https://script.google.com/macros/s/AKfycbzH0Fl_ydMYJaLR68bsj7s-WYTcvXJkw1UBf-gOla3PVXzStp6eN1_Up7QgtDn-BtfA/exec");
+        throw new Error("URL Google Apps Script yang Anda masukkan mengembalikan halaman HTML. Pastikan Anda menyalin URL Aplikasi Web (Web App) hasil Deploy baru (akhiran /exec), bukan link editor spreadsheet biasa.");
       }
       throw new Error(`Respon bukan JSON yang valid: ${text.substring(0, 150)}...`);
     }
