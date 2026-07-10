@@ -149,16 +149,19 @@ export default function App() {
         setIsCloudConnected(false);
         loadFromLocalStorage();
       } finally {
-        siswaLoaded.current = true;
-        guruLoaded.current = true;
-        pegawaiLoaded.current = true;
-        kelasLoaded.current = true;
-        suratMasukLoaded.current = true;
-        suratKeluarLoaded.current = true;
-        arsipLoaded.current = true;
-        inventarisLoaded.current = true;
-        usersLoaded.current = true;
-        settingsLoaded.current = true;
+        // Delay enabling save effects so that all initial states set from loadData() are flushed and do not trigger a save-back storm!
+        setTimeout(() => {
+          siswaLoaded.current = true;
+          guruLoaded.current = true;
+          pegawaiLoaded.current = true;
+          kelasLoaded.current = true;
+          suratMasukLoaded.current = true;
+          suratKeluarLoaded.current = true;
+          arsipLoaded.current = true;
+          inventarisLoaded.current = true;
+          usersLoaded.current = true;
+          settingsLoaded.current = true;
+        }, 2000);
       }
     }
 
