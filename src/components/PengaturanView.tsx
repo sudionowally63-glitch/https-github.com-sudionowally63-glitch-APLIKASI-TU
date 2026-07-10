@@ -365,7 +365,7 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
               <li>Hapus kode bawaan lalu salin dan tempelkan seluruh kode dari file <strong className="font-bold">code.gs</strong> ke editor Apps Script Anda.</li>
               <li>Klik tombol biru <strong className="font-bold">Terapkan &gt; Penerapan Baru</strong> (Deploy &gt; New Deployment) di kanan atas.</li>
               <li>Klik ikon roda gigi (gear) di sebelah "Pilih jenis", lalu pilih <strong className="font-bold">Aplikasi Web</strong> (Web App).</li>
-              <li className="bg-rose-200/50 p-1.5 rounded font-bold">⚠️ PASTIKAN: Bagian "Who has access" (Yang memiliki akses) HARUS disetel menjadi "Anyone" (Siapa saja). Jangan pilih yang lain!</li>
+              <li className="bg-rose-200/50 p-1.5 rounded font-bold">⚠️ PASTIKAN: Bagian "Who has access" (Yang memiliki akses) HARUS disetel menjadi "Anyone" (Siapa saja). Jangan pilih yang lain! (PENTING: Jika opsi "Anyone" tidak ada karena Anda memakai akun belajar.id, Anda HARUS menggunakan akun Gmail pribadi / @gmail.com).</li>
               <li>Klik <strong className="font-bold">Terapkan</strong>, lalu klik "Authorize access" (Izinkan akses).</li>
               <li>Jika muncul peringatan keamanan Google, klik "Advanced" (Lanjutan) lalu "Go to... (unsafe)".</li>
               <li>Salin <strong className="font-bold">URL Web App</strong> yang dihasilkan (berakhiran <code className="bg-rose-100 px-1 rounded text-rose-900">/exec</code>).</li>

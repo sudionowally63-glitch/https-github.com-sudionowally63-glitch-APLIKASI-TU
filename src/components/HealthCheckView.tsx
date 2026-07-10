@@ -124,8 +124,10 @@ export default function HealthCheckView({ onBackToDashboard }: HealthCheckViewPr
           newSteps[2].message = "Server Google Apps Script merespon.";
 
           newSteps[3].status = "failed";
-          newSteps[3].message = "Izin Ditolak (Memerlukan login Akun Google).";
-          newSteps[3].recommendation = "Harap buka menu Deploy -> Manage deployments di Google Apps Script Anda. Klik ikon pensil, pastikan opsi 'Who has access' diubah dari 'Only myself' menjadi 'Anyone' (Siapa saja). Klik Deploy untuk menyimpan.";
+          newSteps[3].message = "Izin Ditolak (Memerlukan login Akun Google / Terhalang SSO Belajar.id).";
+          newSteps[3].recommendation = displayMsg.includes("Belajar.id") 
+            ? "AKUN BELAJAR.ID DIBLOKIR: Akun Google Workspace Anda tidak mengizinkan opsi 'Anyone'. Anda WAJIB menggunakan akun Gmail pribadi (@gmail.com) untuk membuat Spreadsheet & Apps Script." 
+            : "Harap buka menu Deploy -> Manage deployments di Google Apps Script Anda. Klik ikon pensil, pastikan opsi 'Who has access' diubah dari 'Only myself' menjadi 'Anyone' (Siapa saja). Klik Deploy untuk menyimpan.";
 
           newSteps[4].status = "failed";
           newSteps[4].message = "Gagal memproses data spreadsheet.";

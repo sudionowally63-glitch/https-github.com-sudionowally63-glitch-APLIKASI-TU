@@ -70,9 +70,19 @@ async function startServer() {
         console.error("DEBUG ERROR: Invalid JSON response. HTML/Text returned was:\n", text);
         
         if (text.trim().startsWith("<") || text.includes("<html") || text.includes("<HTML") || text.includes("The page")) {
+          // Check for SAML/SSO or Belajar.id specifically
+          if (text.includes("SAML") || text.includes("belajar.id") || text.includes("SSO") || text.includes("Sign in")) {
+            return {
+              success: false,
+              message: "Akses ditolak (Google Workspace/Belajar.id SSO Terdeteksi). Anda tidak dapat menggunakan opsi 'Anyone within...'. Anda WAJIB menggunakan akun Gmail pribadi (@gmail.com) jika akun Belajar.id Anda diblokir untuk public sharing.",
+              error: "CORS_OR_AUTH_REQUIRED_HTML"
+            };
+          }
+
+          const snippet = text.substring(0, 150).replace(/\n/g, " ");
           return {
             success: false,
-            message: "Google Apps Script mengembalikan halaman HTML, bukan data JSON. Hal ini biasanya terjadi karena Anda salah menyalin URL spreadsheet atau URL editor, atau status deployment Apps Script Anda belum aktif (belum dideploy sebagai Web App publik).",
+            message: `Google Apps Script mengembalikan HTML: ${snippet}... (Hal ini berarti URL salah atau Anda terblokir SSO/Login Belajar.id).`,
             error: "Received HTML instead of JSON"
           };
         }
