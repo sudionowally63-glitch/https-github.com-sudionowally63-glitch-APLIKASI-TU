@@ -1,1 +1,1 @@
-DEPLOY_URL=
+DEPLOY_URL='https://script.google.com/macros/s/AKfycbzssFQgSxZpWNdiDxi0j3QBnUtIs6erSIGxWcbd1SbTlYsQ3g7-iRtJv7zwAez3VPX_/exec'
