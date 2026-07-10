@@ -44,6 +44,30 @@ async function startServer() {
     }
   });
 
+  // Get current Google Apps Script URL configuration
+  app.get("/api/sheets/url", (req, res) => {
+    try {
+      const appUrl = getAppUrl();
+      res.json({ url: appUrl });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Save new Google Apps Script URL configuration
+  app.post("/api/sheets/url", (req, res) => {
+    try {
+      const { url } = req.body;
+      if (url === undefined) {
+        return res.status(400).json({ error: "Missing 'url' parameter" });
+      }
+      fs.writeFileSync("app.txt", `DEPLOY_URL=${url.trim()}`, "utf8");
+      res.json({ status: "success", url: url.trim() });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/sheets", async (req, res) => {
     try {
       const appUrl = getAppUrl();

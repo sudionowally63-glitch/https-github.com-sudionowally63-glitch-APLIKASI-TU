@@ -12,3 +12,19 @@ export async function saveData(key: string, value: any) {
   });
   return await response.json();
 }
+
+export async function getSheetsUrl() {
+  const response = await fetch("/api/sheets/url");
+  const data = await response.json();
+  return data.url || "";
+}
+
+export async function saveSheetsUrl(url: string) {
+  const response = await fetch("/api/sheets/url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url })
+  });
+  return await response.json();
+}
+

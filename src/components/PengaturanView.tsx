@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Settings, Image, Save, Trash2, ShieldAlert, CheckCircle, RefreshCw
+  Settings, Image, Save, Trash2, ShieldAlert, CheckCircle, RefreshCw, Link, Database, AlertCircle
 } from "lucide-react";
 import { Setting } from "../types";
+import { getSheetsUrl, saveSheetsUrl } from "../lib/sheets";
 
 interface PengaturanViewProps {
   settings: Setting;
@@ -21,6 +22,22 @@ interface PengaturanViewProps {
 export default function PengaturanView({ settings, setSettings, onWipeData }: PengaturanViewProps) {
   const [form, setForm] = useState<Setting>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [sheetsUrl, setSheetsUrl] = useState("");
+  const [isTestingUrl, setIsTestingUrl] = useState(false);
+  const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+
+  // Load current Google Apps Script URL on mount
+  useEffect(() => {
+    async function loadUrl() {
+      try {
+        const url = await getSheetsUrl();
+        setSheetsUrl(url);
+      } catch (err) {
+        console.error("Failed to load Google Sheets URL", err);
+      }
+    }
+    loadUrl();
+  }, []);
 
   // Update form if settings prop changes
   useEffect(() => {
@@ -95,11 +112,50 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
     reader.readAsDataURL(file);
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettings(form);
+    
+    // Save the Google Sheets URL
+    try {
+      await saveSheetsUrl(sheetsUrl);
+    } catch (err) {
+      console.error("Failed to save Google Sheets URL", err);
+    }
+
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingUrl(true);
+    setTestStatus(null);
+    try {
+      // First save the current URL in input
+      await saveSheetsUrl(sheetsUrl);
+      
+      const response = await fetch("/api/sheets?key=settings");
+      const data = await response.json();
+      
+      if (response.ok && data && !data.error) {
+        setTestStatus({
+          success: true,
+          message: "Koneksi berhasil! Google Sheets terhubung secara real-time dan sinkron."
+        });
+      } else {
+        setTestStatus({
+          success: false,
+          message: data.error || "Gagal menghubungkan. Pastikan URL Web App Anda benar dan dideploy sebagai 'Anyone' (Siapa saja)."
+        });
+      }
+    } catch (err: any) {
+      setTestStatus({
+        success: false,
+        message: err.message || "Gagal menghubungi server lokal untuk proxy."
+      });
+    } finally {
+      setIsTestingUrl(false);
+    }
   };
 
   const handleWipeClick = () => {
@@ -156,8 +212,9 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form settings */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+        {/* Form settings & Sync cards */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
           <div className="flex items-center gap-2.5 mb-6">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
               <Settings className="w-5 h-5" />
@@ -260,6 +317,84 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
             </div>
           </form>
         </div>
+
+        {/* INTEGRASI GOOGLE SHEETS */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-5">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 font-display">Sinkronisasi Database (Google Sheets)</h3>
+              <p className="text-xs text-slate-400">Hubungkan aplikasi Anda secara real-time dengan Google Spreadsheet menggunakan Google Apps Script.</p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-amber-50/70 rounded-xl border border-amber-100 text-amber-800 space-y-2">
+            <h4 className="text-xs font-bold flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              Cara Menghubungkan Google Spreadsheet Anda secara Real-time:
+            </h4>
+            <ol className="list-decimal list-inside text-[11px] space-y-1 pl-1 leading-relaxed text-slate-600">
+              <li>Buat Spreadsheet baru di Google Sheets.</li>
+              <li>Klik menu <strong className="text-slate-800">Ekstensi &gt; Apps Script</strong>.</li>
+              <li>Hapus kode bawaan lalu salin dan tempelkan seluruh kode dari file <strong className="text-slate-800">code.gs</strong> ke editor Apps Script Anda.</li>
+              <li>Klik tombol <strong className="text-slate-800">Terapkan &gt; Penerapan Baru</strong> (Deploy &gt; New Deployment) di kanan atas.</li>
+              <li>Pilih jenis <strong className="text-slate-800">Aplikasi Web</strong> (Web App).</li>
+              <li>Pastikan bagian <strong className="text-slate-800">Yang memiliki akses</strong> disetel menjadi <strong className="text-slate-800">Siapa saja</strong> (Anyone).</li>
+              <li>Klik <strong className="text-slate-800">Terapkan</strong>, berikan izin akses Google, lalu salin <strong className="text-slate-800">URL Web App</strong> yang dihasilkan.</li>
+              <li>Tempelkan URL tersebut ke kolom input di bawah ini, lalu klik <strong className="text-slate-800">Simpan Pengaturan</strong> atau klik <strong className="text-slate-800">Test Koneksi</strong>.</li>
+            </ol>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-500">URL Web App Google Apps Script *</label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={sheetsUrl}
+                onChange={(e) => setSheetsUrl(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 font-mono text-slate-600"
+              />
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTestingUrl || !sheetsUrl}
+                className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shrink-0"
+              >
+                {isTestingUrl ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Menghubungkan...
+                  </>
+                ) : (
+                  <>
+                    <Link className="w-3.5 h-3.5" /> Test Koneksi
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {testStatus && (
+            <div className={`p-3 rounded-xl border text-xs flex items-start gap-2 animate-fade-in ${
+              testStatus.success 
+                ? "bg-emerald-50 border-emerald-100 text-emerald-800" 
+                : "bg-rose-50 border-rose-100 text-rose-800"
+            }`}>
+              {testStatus.success ? (
+                <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4.5 h-4.5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+              <div className="leading-normal">
+                <p className="font-bold">{testStatus.success ? "Koneksi Berhasil!" : "Koneksi Gagal!"}</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">{testStatus.message}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
         {/* LOGO & CLUSTER WIPE */}
         <div className="space-y-6">

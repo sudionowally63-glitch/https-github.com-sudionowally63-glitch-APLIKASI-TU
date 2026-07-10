@@ -40,6 +40,7 @@ export default function App() {
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean | null>(null);
 
   // DB States
   const [siswa, setSiswa] = useState<Siswa[]>(initialSiswa);
@@ -90,84 +91,161 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Load data
+  // Load data with robust local storage failover
   useEffect(() => {
     async function loadData() {
-      const data = await getData();
-      if (data) {
-        if (data.siswa) setSiswa(data.siswa);
-        if (data.guru) setGuru(data.guru);
-        if (data.pegawai) setPegawai(data.pegawai);
-        if (data.kelas) setKelas(data.kelas);
-        if (data.suratMasuk) setSuratMasuk(data.suratMasuk);
-        if (data.suratKeluar) setSuratKeluar(data.suratKeluar);
-        if (data.arsip) setArsip(data.arsip);
-        if (data.inventaris) setInventaris(data.inventaris);
-        if (data.users) setUsers(data.users);
-        if (data.settings) setSettings(data.settings);
+      try {
+        const data = await getData();
+        if (data && !data.error) {
+          if (data.siswa) {
+            setSiswa(data.siswa);
+            localStorage.setItem("tu_siswa", JSON.stringify(data.siswa));
+          }
+          if (data.guru) {
+            setGuru(data.guru);
+            localStorage.setItem("tu_guru", JSON.stringify(data.guru));
+          }
+          if (data.pegawai) {
+            setPegawai(data.pegawai);
+            localStorage.setItem("tu_pegawai", JSON.stringify(data.pegawai));
+          }
+          if (data.kelas) {
+            setKelas(data.kelas);
+            localStorage.setItem("tu_kelas", JSON.stringify(data.kelas));
+          }
+          if (data.suratMasuk) {
+            setSuratMasuk(data.suratMasuk);
+            localStorage.setItem("tu_suratMasuk", JSON.stringify(data.suratMasuk));
+          }
+          if (data.suratKeluar) {
+            setSuratKeluar(data.suratKeluar);
+            localStorage.setItem("tu_suratKeluar", JSON.stringify(data.suratKeluar));
+          }
+          if (data.arsip) {
+            setArsip(data.arsip);
+            localStorage.setItem("tu_arsip", JSON.stringify(data.arsip));
+          }
+          if (data.inventaris) {
+            setInventaris(data.inventaris);
+            localStorage.setItem("tu_inventaris", JSON.stringify(data.inventaris));
+          }
+          if (data.users) {
+            setUsers(data.users);
+            localStorage.setItem("tu_users", JSON.stringify(data.users));
+          }
+          if (data.settings) {
+            setSettings(data.settings);
+            localStorage.setItem("tu_settings", JSON.stringify(data.settings));
+          }
+          setIsCloudConnected(true);
+        } else {
+          // Sheets URL is not configured or returned error, load local copy
+          console.warn("Using offline localStorage mode due to missing config:", data?.error);
+          setIsCloudConnected(false);
+          loadFromLocalStorage();
+        }
+      } catch (err) {
+        console.error("Error loading data from Google Sheets:", err);
+        setIsCloudConnected(false);
+        loadFromLocalStorage();
+      } finally {
+        siswaLoaded.current = true;
+        guruLoaded.current = true;
+        pegawaiLoaded.current = true;
+        kelasLoaded.current = true;
+        suratMasukLoaded.current = true;
+        suratKeluarLoaded.current = true;
+        arsipLoaded.current = true;
+        inventarisLoaded.current = true;
+        usersLoaded.current = true;
+        settingsLoaded.current = true;
       }
-      siswaLoaded.current = true;
-      guruLoaded.current = true;
-      pegawaiLoaded.current = true;
-      kelasLoaded.current = true;
-      suratMasukLoaded.current = true;
-      suratKeluarLoaded.current = true;
-      arsipLoaded.current = true;
-      inventarisLoaded.current = true;
-      usersLoaded.current = true;
-      settingsLoaded.current = true;
     }
+
+    function loadFromLocalStorage() {
+      const sSiswa = localStorage.getItem("tu_siswa");
+      if (sSiswa) setSiswa(JSON.parse(sSiswa));
+      const sGuru = localStorage.getItem("tu_guru");
+      if (sGuru) setGuru(JSON.parse(sGuru));
+      const sPegawai = localStorage.getItem("tu_pegawai");
+      if (sPegawai) setPegawai(JSON.parse(sPegawai));
+      const sKelas = localStorage.getItem("tu_kelas");
+      if (sKelas) setKelas(JSON.parse(sKelas));
+      const sSuratMasuk = localStorage.getItem("tu_suratMasuk");
+      if (sSuratMasuk) setSuratMasuk(JSON.parse(sSuratMasuk));
+      const sSuratKeluar = localStorage.getItem("tu_suratKeluar");
+      if (sSuratKeluar) setSuratKeluar(JSON.parse(sSuratKeluar));
+      const sArsip = localStorage.getItem("tu_arsip");
+      if (sArsip) setArsip(JSON.parse(sArsip));
+      const sInventaris = localStorage.getItem("tu_inventaris");
+      if (sInventaris) setInventaris(JSON.parse(sInventaris));
+      const sUsers = localStorage.getItem("tu_users");
+      if (sUsers) setUsers(JSON.parse(sUsers));
+      const sSettings = localStorage.getItem("tu_settings");
+      if (sSettings) setSettings(JSON.parse(sSettings));
+    }
+
     loadData();
   }, []);
 
   useEffect(() => {
     if (!siswaLoaded.current) return;
     saveData("siswa", siswa);
+    localStorage.setItem("tu_siswa", JSON.stringify(siswa));
   }, [siswa]);
 
   useEffect(() => {
     if (!guruLoaded.current) return;
     saveData("guru", guru);
+    localStorage.setItem("tu_guru", JSON.stringify(guru));
   }, [guru]);
 
   useEffect(() => {
     if (!pegawaiLoaded.current) return;
     saveData("pegawai", pegawai);
+    localStorage.setItem("tu_pegawai", JSON.stringify(pegawai));
   }, [pegawai]);
 
   useEffect(() => {
     if (!kelasLoaded.current) return;
     saveData("kelas", kelas);
+    localStorage.setItem("tu_kelas", JSON.stringify(kelas));
   }, [kelas]);
 
   useEffect(() => {
     if (!suratMasukLoaded.current) return;
     saveData("suratMasuk", suratMasuk);
+    localStorage.setItem("tu_suratMasuk", JSON.stringify(suratMasuk));
   }, [suratMasuk]);
 
   useEffect(() => {
     if (!suratKeluarLoaded.current) return;
     saveData("suratKeluar", suratKeluar);
+    localStorage.setItem("tu_suratKeluar", JSON.stringify(suratKeluar));
   }, [suratKeluar]);
 
   useEffect(() => {
     if (!arsipLoaded.current) return;
     saveData("arsip", arsip);
+    localStorage.setItem("tu_arsip", JSON.stringify(arsip));
   }, [arsip]);
 
   useEffect(() => {
     if (!inventarisLoaded.current) return;
     saveData("inventaris", inventaris);
+    localStorage.setItem("tu_inventaris", JSON.stringify(inventaris));
   }, [inventaris]);
 
   useEffect(() => {
     if (!usersLoaded.current) return;
     saveData("users", users);
+    localStorage.setItem("tu_users", JSON.stringify(users));
   }, [users]);
 
   useEffect(() => {
     if (!settingsLoaded.current) return;
     saveData("settings", settings);
+    localStorage.setItem("tu_settings", JSON.stringify(settings));
   }, [settings]);
 
   // LOGIN EXECUTION
@@ -620,10 +698,22 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Desktop Sync Badge */}
-            <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-emerald-700">TERHUBUNG CLOUD</span>
-            </div>
+            {isCloudConnected === true ? (
+              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full" id="sync-status-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-emerald-700">TERHUBUNG SHEETS</span>
+              </div>
+            ) : isCloudConnected === false ? (
+              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-amber-50 border border-amber-100 px-3 py-1 rounded-full" id="sync-status-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-amber-700">DEMO OFFLINE</span>
+              </div>
+            ) : (
+              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full" id="sync-status-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                <span className="text-slate-600">MENGECEK...</span>
+              </div>
+            )}
 
             {/* Principal Signature Information Tag */}
             <div className="text-right text-xs">
