@@ -138,13 +138,64 @@ function onOpen() {
   }
 }
 
-function setupDatabase() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Database");
-  if (sheet) {
-    ss.deleteSheet(sheet);
+/**
+ * Robust helper to obtain the spreadsheet instance.
+ * Supports Container-Bound scripts AND Standalone scripts with Drive automatic search/creation fallback.
+ */
+function getSpreadsheet() {
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {
+    Logger.log("getActiveSpreadsheet error: " + e.toString());
   }
-  sheet = ss.insertSheet("Database");
+  
+  if (ss) {
+    return ss;
+  }
+  
+  // Standalone script fallback - retrieve from saved properties or auto-create in Drive
+  var props = PropertiesService.getScriptProperties();
+  var ssId = props.getProperty("SPREADSHEET_ID");
+  if (ssId) {
+    try {
+      return SpreadsheetApp.openById(ssId);
+    } catch (e) {
+      Logger.log("openById error for SPREADSHEET_ID (" + ssId + "): " + e.toString());
+    }
+  }
+  
+  // Search or create "Database Administrasi Tata Usaha" in Drive
+  try {
+    var files = DriveApp.getFilesByName("Database Administrasi Tata Usaha");
+    if (files.hasNext()) {
+      var file = files.next();
+      var foundSs = SpreadsheetApp.open(file);
+      props.setProperty("SPREADSHEET_ID", foundSs.getId());
+      return foundSs;
+    } else {
+      var newSs = SpreadsheetApp.create("Database Administrasi Tata Usaha");
+      props.setProperty("SPREADSHEET_ID", newSs.getId());
+      return newSs;
+    }
+  } catch (driveErr) {
+    Logger.log("DriveApp fallback search/create error: " + driveErr.toString());
+    return null;
+  }
+}
+
+function setupDatabase() {
+  var ss = getSpreadsheet();
+  if (!ss) {
+    throw new Error("Gagal menginisialisasi spreadsheet. Pastikan akun Google Anda memiliki akses ke Google Drive.");
+  }
+  
+  var sheet = ss.getSheetByName("Database");
+  if (!sheet) {
+    sheet = ss.insertSheet("Database");
+  } else {
+    sheet.clear(); // Safe clear to prevent 'cannot delete only sheet' exceptions
+  }
   
   // Set headers
   sheet.getRange(1, 1).setValue("Key");
@@ -173,7 +224,6 @@ function setupDatabase() {
  */
 function saveBase64ImageToDrive(base64Str, fileName) {
   try {
-    // base64Str is "data:image/jpeg;base64,/9j/4AAQSkZJRg..." or "data:image/png;base64,..."
     var split = base64Str.split(",");
     var mimeType = "image/jpeg";
     var base64Data = base64Str;
@@ -260,11 +310,21 @@ function processBase64Fields(obj, prefix) {
 }
 
 function doGet(e) {
+  var lock = LockService.getScriptLock();
   try {
-    var key = e && e.parameter ? e.parameter.key : null;
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Database");
+    // Acquire a script-wide lock to prevent concurrency issues and spreadsheet write conflicts
+    lock.waitLock(30000); // Wait up to 30 seconds
     
+    var key = e && e.parameter ? e.parameter.key : null;
+    var ss = getSpreadsheet();
+    if (!ss) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "Gagal memuat Spreadsheet. Jika Anda menggunakan Script Standalone, pastikan layanan Drive API diizinkan dan akun Google Anda valid.",
+        status: "error"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var sheet = ss.getSheetByName("Database");
     if (!sheet) {
       setupDatabase();
       sheet = ss.getSheetByName("Database");
@@ -316,16 +376,48 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.toString()}))
+    return ContentService.createTextOutput(JSON.stringify({error: err.toString(), status: "error"}))
       .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (lockError) {
+      // Ignored
+    }
   }
 }
 
 function doPost(e) {
+  var lock = LockService.getScriptLock();
   try {
-    var data = JSON.parse(e.postData.contents);
+    lock.waitLock(30000); // Lock writes for concurrency protection
+    
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "Payload kosong atau tidak valid (Missing postData contents)", 
+        status: "error"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data;
+    try {
+      data = JSON.parse(e.postData.contents);
+    } catch (parseErr) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "Gagal mengurai JSON input: " + parseErr.toString(),
+        status: "error"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
     var key = data.key;
     var rawValue = data.value;
+    
+    if (!key) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "Parameter 'key' wajib diisi.", 
+        status: "error"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
     
     // If the value is a stringified JSON representation, parse it to process base64
     var wasString = false;
@@ -346,9 +438,15 @@ function doPost(e) {
     // Encode value back to string if it was parsed or is an object
     var valueToSave = wasString || typeof rawValue === 'object' ? JSON.stringify(rawValue) : rawValue;
     
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Database");
+    var ss = getSpreadsheet();
+    if (!ss) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "Gagal memuat Spreadsheet saat melakukan penyimpanan.", 
+        status: "error"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
     
+    var sheet = ss.getSheetByName("Database");
     if (!sheet) {
       setupDatabase();
       sheet = ss.getSheetByName("Database");
@@ -370,15 +468,20 @@ function doPost(e) {
       sheet.appendRow([key, valueToSave]);
     }
     
-    // If we transformed fields, let's return the updated value back so that the frontend state gets synchronized instantly!
+    // Return processed value so client states synchronize instantly (e.g. replaced Drive links)
     return ContentService.createTextOutput(JSON.stringify({
       status: "success", 
       processedValue: rawValue
-    }))
-      .setMimeType(ContentService.MimeType.JSON);
+    })).setMimeType(ContentService.MimeType.JSON);
       
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({error: err.toString(), status: "error"}))
       .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (lockError) {
+      // Ignored
+    }
   }
 }
