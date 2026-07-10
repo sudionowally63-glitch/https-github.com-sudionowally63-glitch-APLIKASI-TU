@@ -23,32 +23,77 @@ async function startServer() {
     }
   };
 
-  // Helper to safely fetch and parse JSON from Google Apps Script Web App
-  const fetchGoogleAppsScript = async (url: string, options?: RequestInit) => {
+  // Helper to safely fetch and parse JSON from Google Apps Script Web App with 15s timeout
+  const fetchGoogleAppsScript = async (url: string, options: RequestInit = {}, timeoutMs = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(id);
+
+      const contentType = response.headers.get("content-type") || "";
       const text = await response.text();
-      
+
+      if (!response.ok) {
+        if (text.includes("accounts.google.com") || text.includes("Google Accounts")) {
+          return {
+            success: false,
+            message: "Akses ditolak oleh Google. Google Apps Script Web App Anda mendeteksi perlunya login Google. Harap deploy ulang dengan menyetel 'Who has access' (Siapa yang memiliki akses) menjadi 'Anyone' (Siapa saja).",
+            error: "Google Authentication Required"
+          };
+        }
+        return {
+          success: false,
+          message: `Server Google Apps Script mengembalikan status error: ${response.status} ${response.statusText}`,
+          error: `HTTP Error ${response.status}`
+        };
+      }
+
+      // Check if response has Google Login redirect pages (often returned as HTML even on success HTTP)
+      if (text.includes("accounts.google.com") || text.includes("Google Accounts") || text.includes("signin/v2") || text.includes("Service Login")) {
+        console.error("DEBUG CRITICAL: Google Login Redirect Detected. HTML Response:\n", text);
+        return {
+          success: false,
+          message: "Akses ditolak oleh Google (Memerlukan Login). Web App Google Apps Script belum disetel sebagai publik. Harap lakukan 'Deploy ulang' -> Pilih 'Anyone' (Siapa saja) pada opsi 'Who has access'.",
+          error: "CORS_OR_AUTH_REQUIRED_HTML"
+        };
+      }
+
       try {
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        return parsed;
       } catch (parseError) {
+        console.error("DEBUG ERROR: Invalid JSON response. HTML/Text returned was:\n", text);
+        
         if (text.trim().startsWith("<") || text.includes("<html") || text.includes("<HTML") || text.includes("The page")) {
           return {
             success: false,
-            message: "URL Google Apps Script yang Anda masukkan mengembalikan halaman HTML. Pastikan Anda menyalin URL Web App hasil Deploy baru (akhiran /exec), bukan link editor spreadsheet.",
+            message: "Google Apps Script mengembalikan halaman HTML, bukan data JSON. Hal ini biasanya terjadi karena Anda salah menyalin URL spreadsheet atau URL editor, atau status deployment Apps Script Anda belum aktif (belum dideploy sebagai Web App publik).",
             error: "Received HTML instead of JSON"
           };
         }
         return {
           success: false,
-          message: `Respon dari Google Apps Script bukan JSON yang valid: ${text.substring(0, 100)}...`,
+          message: `Respon dari Google Apps Script bukan JSON yang valid: ${text.substring(0, 150)}...`,
           error: "Invalid JSON response"
         };
       }
     } catch (networkError: any) {
+      clearTimeout(id);
+      if (networkError.name === 'AbortError') {
+        return {
+          success: false,
+          message: "Koneksi terputus karena batas waktu (Timeout) terlampaui. Google Apps Script memakan waktu terlalu lama untuk merespon.",
+          error: "Request Timeout"
+        };
+      }
       return {
         success: false,
-        message: `Gagal menghubungi Google Apps Script: ${networkError.message || "Koneksi terputus atau timeout"}`,
+        message: `Gagal menghubungi Google Apps Script: ${networkError.message || "Koneksi terputus atau offline"}`,
         error: networkError.toString()
       };
     }

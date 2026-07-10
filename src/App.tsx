@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
-  LayoutDashboard, Users, GraduationCap, Briefcase, BookOpen, Mail, Archive, Package, UserCheck, Settings, LogOut, Clock, Calendar, Menu, X, Landmark, Lock, ShieldAlert, FileText
+  LayoutDashboard, Users, GraduationCap, Briefcase, BookOpen, Mail, Archive, Package, UserCheck, Settings, LogOut, Clock, Calendar, Menu, X, Landmark, Lock, ShieldAlert, FileText, Server
 } from "lucide-react";
 
 
@@ -18,6 +18,7 @@ import ArsipView from "./components/ArsipView";
 import InventarisView from "./components/InventarisView";
 import UserView from "./components/UserView";
 import PengaturanView from "./components/PengaturanView";
+import HealthCheckView from "./components/HealthCheckView";
 
 // Initial Seed Data
 import { 
@@ -416,6 +417,8 @@ export default function App() {
         return <UserView users={users} setUsers={setUsers} settings={settings} />;
       case "settings":
         return <PengaturanView settings={settings} setSettings={setSettings} onWipeData={handleWipeData} />;
+      case "health":
+        return <HealthCheckView onBackToDashboard={() => setActiveTab("dashboard")} />;
       default:
         return <div className="p-8 text-slate-500">View Not Found.</div>;
     }
@@ -433,7 +436,8 @@ export default function App() {
     { id: "arsip", label: "Arsip Dokumen", icon: Archive, count: arsip.length },
     { id: "inventaris", label: "Inventaris Sarpras", icon: Package, count: inventaris.length },
     { id: "user", label: "Operator Sistem", icon: UserCheck, count: users.length },
-    { id: "settings", label: "Pengaturan & Kop", icon: Settings, count: null }
+    { id: "settings", label: "Pengaturan & Kop", icon: Settings, count: null },
+    { id: "health", label: "Health Check Jaringan", icon: Server, count: null }
   ];
 
   // -------------------------------------------------------------
@@ -751,37 +755,41 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Connection Status Indicator */}
-            <div className="flex items-center gap-2" title={connectionMessage || "Status koneksi real-time dengan Google Sheets"}>
+            <button 
+              onClick={() => setActiveTab("health")}
+              className="flex items-center gap-2 hover:bg-slate-100 p-1 rounded-lg transition text-left cursor-pointer" 
+              title={connectionMessage || "Klik untuk membuka menu diagnonstik Health Check"}
+            >
               {connectionStatus === "online" && (
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full" id="sync-status-badge">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-emerald-700 font-sans">SERVER ONLINE</span>
+                  <span className="text-emerald-700 font-sans">🟢 Backend Online</span>
                 </div>
               )}
               {connectionStatus === "offline" && (
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-rose-50 border border-rose-100 px-3 py-1 rounded-full" id="sync-status-badge">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  <span className="text-rose-700 font-sans">SERVER OFFLINE</span>
+                  <span className="text-rose-700 font-sans">🔴 Backend Offline</span>
                 </div>
               )}
               {connectionStatus === "connecting" && (
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-blue-50 border border-blue-100 px-3 py-1 rounded-full animate-pulse" id="sync-status-badge">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  <span className="text-blue-700 font-sans font-medium">MENGHUBUNGKAN...</span>
+                  <span className="text-blue-700 font-sans font-medium">🟡 Connecting...</span>
                 </div>
               )}
               {connectionStatus === "reloading" && (
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-amber-50 border border-amber-100 px-3 py-1 rounded-full" id="sync-status-badge">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce" />
-                  <span className="text-amber-700 font-sans">MEMUAT ULANG...</span>
+                  <span className="text-amber-700 font-sans">🟡 MEMUAT ULANG...</span>
                 </div>
               )}
               {connectionMessage && (
-                <span className="hidden xl:inline text-[9px] text-slate-400 font-mono max-w-[200px] truncate" id="sync-status-message">
+                <span className="hidden xl:inline text-[9px] text-slate-400 font-mono max-w-[150px] truncate animate-pulse" id="sync-status-message">
                   {connectionMessage}
                 </span>
               )}
-            </div>
+            </button>
 
             {/* Principal Signature Information Tag */}
             <div className="text-right text-xs">
