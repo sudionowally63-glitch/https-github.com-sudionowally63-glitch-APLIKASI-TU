@@ -392,6 +392,27 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
                   </>
                 )}
               </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await saveSheetsUrl(sheetsUrl);
+                    setTestStatus({
+                      success: true,
+                      message: "URL Google Apps Script berhasil disimpan! Anda sekarang dapat menjalankan 'Test Koneksi' atau memantau di tab 'Health Check Jaringan'."
+                    });
+                  } catch (err: any) {
+                    setTestStatus({
+                      success: false,
+                      message: `Gagal menyimpan URL: ${err.message || err}`
+                    });
+                  }
+                }}
+                disabled={!sheetsUrl}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shrink-0"
+              >
+                <Save className="w-3.5 h-3.5" /> Simpan URL
+              </button>
             </div>
             
             {getUrlWarning(sheetsUrl) && (
