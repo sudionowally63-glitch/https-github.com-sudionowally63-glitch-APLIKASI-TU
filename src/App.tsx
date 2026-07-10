@@ -41,6 +41,56 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isCloudConnected, setIsCloudConnected] = useState<boolean | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "online" | "offline" | "reloading">("connecting");
+  const [connectionMessage, setConnectionMessage] = useState<string>("");
+
+  // Listen to connection status events from our sheets library
+  useEffect(() => {
+    const handleStatusChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ status: "connecting" | "online" | "offline" | "reloading"; message: string }>;
+      if (customEvent.detail) {
+        setConnectionStatus(customEvent.detail.status);
+        setConnectionMessage(customEvent.detail.message || "");
+        if (customEvent.detail.status === "online") {
+          setIsCloudConnected(true);
+        } else if (customEvent.detail.status === "offline") {
+          setIsCloudConnected(false);
+        }
+      }
+    };
+
+    window.addEventListener("connection-status-change", handleStatusChange);
+    return () => {
+      window.removeEventListener("connection-status-change", handleStatusChange);
+    };
+  }, []);
+
+  // Periodic background health check (ping) every 25 seconds
+  useEffect(() => {
+    let active = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await getData("health");
+        if (!active) return;
+        if (res && !res.error) {
+          setConnectionStatus("online");
+          setIsCloudConnected(true);
+        } else {
+          setConnectionStatus("offline");
+          setIsCloudConnected(false);
+        }
+      } catch (e) {
+        if (!active) return;
+        setConnectionStatus("offline");
+        setIsCloudConnected(false);
+      }
+    }, 25000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // DB States
   const [siswa, setSiswa] = useState<Siswa[]>(initialSiswa);
@@ -700,23 +750,38 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Desktop Sync Badge */}
-            {isCloudConnected === true ? (
-              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full" id="sync-status-badge">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-emerald-700">TERHUBUNG SHEETS</span>
-              </div>
-            ) : isCloudConnected === false ? (
-              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-amber-50 border border-amber-100 px-3 py-1 rounded-full" id="sync-status-badge">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-amber-700">DEMO OFFLINE</span>
-              </div>
-            ) : (
-              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full" id="sync-status-badge">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                <span className="text-slate-600">MENGECEK...</span>
-              </div>
-            )}
+            {/* Connection Status Indicator */}
+            <div className="flex items-center gap-2" title={connectionMessage || "Status koneksi real-time dengan Google Sheets"}>
+              {connectionStatus === "online" && (
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full" id="sync-status-badge">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-emerald-700 font-sans">SERVER ONLINE</span>
+                </div>
+              )}
+              {connectionStatus === "offline" && (
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-rose-50 border border-rose-100 px-3 py-1 rounded-full" id="sync-status-badge">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span className="text-rose-700 font-sans">SERVER OFFLINE</span>
+                </div>
+              )}
+              {connectionStatus === "connecting" && (
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-blue-50 border border-blue-100 px-3 py-1 rounded-full animate-pulse" id="sync-status-badge">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  <span className="text-blue-700 font-sans font-medium">MENGHUBUNGKAN...</span>
+                </div>
+              )}
+              {connectionStatus === "reloading" && (
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase bg-amber-50 border border-amber-100 px-3 py-1 rounded-full" id="sync-status-badge">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce" />
+                  <span className="text-amber-700 font-sans">MEMUAT ULANG...</span>
+                </div>
+              )}
+              {connectionMessage && (
+                <span className="hidden xl:inline text-[9px] text-slate-400 font-mono max-w-[200px] truncate" id="sync-status-message">
+                  {connectionMessage}
+                </span>
+              )}
+            </div>
 
             {/* Principal Signature Information Tag */}
             <div className="text-right text-xs">

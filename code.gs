@@ -353,18 +353,21 @@ function doGet(e) {
     var ss = getSpreadsheet();
     if (!ss) {
       return ContentService.createTextOutput(JSON.stringify({
-        error: "Gagal memuat Spreadsheet. Jika Anda menggunakan Script Standalone, pastikan layanan Drive API diizinkan dan akun Google Anda valid.",
-        status: "error"
+        success: false,
+        message: "Gagal memuat Spreadsheet. Jika Anda menggunakan Script Standalone, pastikan layanan Drive API diizinkan dan akun Google Anda valid.",
+        error: "Spreadsheet open failure"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     if (key === "health") {
       return ContentService.createTextOutput(JSON.stringify({
-        status: "success",
+        success: true,
         message: "Koneksi berhasil! Google Apps Script terhubung dengan baik.",
-        spreadsheetId: ss.getId(),
-        spreadsheetName: ss.getName(),
-        sheets: ss.getSheets().map(function(s) { return s.getName(); })
+        data: {
+          spreadsheetId: ss.getId(),
+          spreadsheetName: ss.getName(),
+          sheets: ss.getSheets().map(function(s) { return s.getName(); })
+        }
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -412,16 +415,25 @@ function doGet(e) {
 
     if (key) {
       var result = obj[key] !== undefined ? obj[key] : null;
-      return ContentService.createTextOutput(JSON.stringify(result))
-        .setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        message: "Data " + key + " berhasil diambil.",
+        data: result
+      })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    return ContentService.createTextOutput(JSON.stringify(obj))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: "Seluruh data berhasil diambil.",
+      data: obj
+    })).setMimeType(ContentService.MimeType.JSON);
       
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.toString(), status: "error"}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: "Terjadi kesalahan pada doGet: " + err.toString(),
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     try {
       lock.releaseLock();
@@ -438,8 +450,9 @@ function doPost(e) {
     
     if (!e || !e.postData || !e.postData.contents) {
       return ContentService.createTextOutput(JSON.stringify({
-        error: "Payload kosong atau tidak valid (Missing postData contents)", 
-        status: "error"
+        success: false,
+        message: "Payload kosong atau tidak valid (Missing postData contents)", 
+        error: "Missing postData contents"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -448,8 +461,9 @@ function doPost(e) {
       data = JSON.parse(e.postData.contents);
     } catch (parseErr) {
       return ContentService.createTextOutput(JSON.stringify({
-        error: "Gagal mengurai JSON input: " + parseErr.toString(),
-        status: "error"
+        success: false,
+        message: "Gagal mengurai JSON input.",
+        error: parseErr.toString()
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -458,8 +472,9 @@ function doPost(e) {
     
     if (!key) {
       return ContentService.createTextOutput(JSON.stringify({
-        error: "Parameter 'key' wajib diisi.", 
-        status: "error"
+        success: false,
+        message: "Parameter 'key' wajib diisi.", 
+        error: "Missing 'key' parameter"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -485,8 +500,9 @@ function doPost(e) {
     var ss = getSpreadsheet();
     if (!ss) {
       return ContentService.createTextOutput(JSON.stringify({
-        error: "Gagal memuat Spreadsheet saat melakukan penyimpanan.", 
-        status: "error"
+        success: false,
+        message: "Gagal memuat Spreadsheet saat melakukan penyimpanan.", 
+        error: "Spreadsheet open failure"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -514,13 +530,17 @@ function doPost(e) {
     
     // Return processed value so client states synchronize instantly (e.g. replaced Drive links)
     return ContentService.createTextOutput(JSON.stringify({
-      status: "success", 
-      processedValue: rawValue
+      success: true,
+      message: "Data " + key + " berhasil disimpan.",
+      data: rawValue
     })).setMimeType(ContentService.MimeType.JSON);
       
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.toString(), status: "error"}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: "Terjadi kesalahan saat menyimpan data: " + err.toString(),
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     try {
       lock.releaseLock();

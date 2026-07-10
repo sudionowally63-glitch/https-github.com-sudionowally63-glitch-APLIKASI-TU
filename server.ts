@@ -25,16 +25,32 @@ async function startServer() {
 
   // Helper to safely fetch and parse JSON from Google Apps Script Web App
   const fetchGoogleAppsScript = async (url: string, options?: RequestInit) => {
-    const response = await fetch(url, options);
-    const text = await response.text();
-    
     try {
-      return JSON.parse(text);
-    } catch (parseError) {
-      if (text.trim().startsWith("<") || text.includes("<html") || text.includes("<HTML") || text.includes("The page")) {
-        throw new Error("URL Google Apps Script yang Anda masukkan mengembalikan halaman HTML. Pastikan Anda menyalin URL Aplikasi Web (Web App) hasil Deploy baru (akhiran /exec), bukan link editor spreadsheet biasa.");
+      const response = await fetch(url, options);
+      const text = await response.text();
+      
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        if (text.trim().startsWith("<") || text.includes("<html") || text.includes("<HTML") || text.includes("The page")) {
+          return {
+            success: false,
+            message: "URL Google Apps Script yang Anda masukkan mengembalikan halaman HTML. Pastikan Anda menyalin URL Web App hasil Deploy baru (akhiran /exec), bukan link editor spreadsheet.",
+            error: "Received HTML instead of JSON"
+          };
+        }
+        return {
+          success: false,
+          message: `Respon dari Google Apps Script bukan JSON yang valid: ${text.substring(0, 100)}...`,
+          error: "Invalid JSON response"
+        };
       }
-      throw new Error(`Respon bukan JSON yang valid: ${text.substring(0, 150)}...`);
+    } catch (networkError: any) {
+      return {
+        success: false,
+        message: `Gagal menghubungi Google Apps Script: ${networkError.message || "Koneksi terputus atau timeout"}`,
+        error: networkError.toString()
+      };
     }
   };
 
@@ -43,7 +59,11 @@ async function startServer() {
     try {
       const appUrl = getAppUrl();
       if (!appUrl) {
-        return res.json({ error: "Google Apps Script URL not configured in app.txt" });
+        return res.json({
+          success: false,
+          message: "URL Google Apps Script belum dikonfigurasi di Pengaturan.",
+          error: "Google Apps Script URL not configured in app.txt"
+        });
       }
       
       const data = await fetchGoogleAppsScript(appUrl, {
@@ -54,7 +74,11 @@ async function startServer() {
       
       res.json(data);
     } catch (error: any) {
-      res.json({ error: error.message });
+      res.json({
+        success: false,
+        message: error.message || "Terjadi kesalahan saat memproses data.",
+        error: error.toString()
+      });
     }
   });
 
@@ -62,9 +86,17 @@ async function startServer() {
   app.get("/api/sheets/url", (req, res) => {
     try {
       const appUrl = getAppUrl();
-      res.json({ url: appUrl });
+      res.json({
+        success: true,
+        message: "URL Google Apps Script berhasil diambil.",
+        data: { url: appUrl }
+      });
     } catch (error: any) {
-      res.json({ error: error.message });
+      res.json({
+        success: false,
+        message: error.message || "Gagal mengambil konfigurasi URL.",
+        error: error.toString()
+      });
     }
   });
 
@@ -73,12 +105,24 @@ async function startServer() {
     try {
       const { url } = req.body;
       if (url === undefined) {
-        return res.json({ error: "Missing 'url' parameter" });
+        return res.json({
+          success: false,
+          message: "Parameter 'url' wajib disertakan.",
+          error: "Missing 'url' parameter"
+        });
       }
       fs.writeFileSync("app.txt", `DEPLOY_URL=${url.trim()}`, "utf8");
-      res.json({ status: "success", url: url.trim() });
+      res.json({
+        success: true,
+        message: "URL Google Apps Script berhasil disimpan.",
+        data: { url: url.trim() }
+      });
     } catch (error: any) {
-      res.json({ error: error.message });
+      res.json({
+        success: false,
+        message: error.message || "Gagal menyimpan konfigurasi URL.",
+        error: error.toString()
+      });
     }
   });
 
@@ -86,7 +130,11 @@ async function startServer() {
     try {
       const appUrl = getAppUrl();
       if (!appUrl) {
-        return res.json({ error: "Google Apps Script URL not configured in app.txt" });
+        return res.json({
+          success: false,
+          message: "URL Google Apps Script belum dikonfigurasi di Pengaturan.",
+          error: "Google Apps Script URL not configured in app.txt"
+        });
       }
       
       const key = req.query.key;
@@ -95,7 +143,11 @@ async function startServer() {
       const data = await fetchGoogleAppsScript(url);
       res.json(data);
     } catch (error: any) {
-      res.json({ error: error.message });
+      res.json({
+        success: false,
+        message: error.message || "Terjadi kesalahan saat mengambil data.",
+        error: error.toString()
+      });
     }
   });
 
