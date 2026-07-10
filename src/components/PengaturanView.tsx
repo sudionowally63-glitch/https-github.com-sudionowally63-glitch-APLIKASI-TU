@@ -36,7 +36,7 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
       return "Peringatan: Ini adalah URL editor Apps Script. Harap lakukan Deploy -> New Deployment (Penerapan Baru) di kanan atas, lalu salin URL Web App yang berakhiran /exec.";
     }
     if (!trimmed.startsWith("https://script.google.com/macros/s/")) {
-      return "Format URL tidak cocok. URL Web App Google Apps Script yang benar harus diawali dengan 'https://script.google.com/macros/s/'";
+      return "Format URL tidak cocok. URL Web App Google Apps Script yang benar harus diawali dengan 'https://script.google.com/macros/s/AKfycbxs4QJ87xLi_YyWg8u4V-h4T8tO_nZZIJe2mjzEaHtuoDxd6Cgm3MQV-Ya81KevFVit/exec'";
     }
     if (!trimmed.endsWith("/exec") && !trimmed.includes("/exec?")) {
       return "Saran: URL Web App biasanya diakhiri dengan '/exec'. Harap periksa kembali hasil salinan URL Web App Anda.";
