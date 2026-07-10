@@ -23,6 +23,21 @@ async function startServer() {
     }
   };
 
+  // Helper to safely fetch and parse JSON from Google Apps Script Web App
+  const fetchGoogleAppsScript = async (url: string, options?: RequestInit) => {
+    const response = await fetch(url, options);
+    const text = await response.text();
+    
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      if (text.trim().startsWith("<") || text.includes("<html") || text.includes("<HTML") || text.includes("The page")) {
+        throw new Error("URL Google Apps Script yang Anda masukkan mengembalikan halaman HTML. Pastikan Anda menyalin URL Aplikasi Web (Web App) hasil Deploy baru (akhiran /exec), bukan link editor spreadsheet biasa.");
+      }
+      throw new Error(`Respon bukan JSON yang valid: ${text.substring(0, 150)}...`);
+    }
+  };
+
   // API route to proxy requests to Google Apps Script
   app.post("/api/sheets", async (req, res) => {
     try {
@@ -31,15 +46,14 @@ async function startServer() {
         return res.status(500).json({ error: "Google Apps Script URL not configured in app.txt" });
       }
       
-      const response = await fetch(appUrl, {
+      const data = await fetchGoogleAppsScript(appUrl, {
         method: "POST",
         body: JSON.stringify(req.body),
         headers: { "Content-Type": "application/json" }
       });
       
-      const data = await response.json();
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
@@ -78,10 +92,9 @@ async function startServer() {
       const key = req.query.key;
       const url = key ? `${appUrl}?key=${encodeURIComponent(key as string)}` : appUrl;
       
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchGoogleAppsScript(url);
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
