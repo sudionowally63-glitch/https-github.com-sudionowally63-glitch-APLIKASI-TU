@@ -98,11 +98,28 @@ export async function saveData(key: string, value: any) {
 }
 
 export async function getSheetsUrl() {
-  const data = await safeFetchJson("/api/sheets/url");
-  return data?.url || "";
+  try {
+    const data = await safeFetchJson("/api/sheets/url");
+    if (data && data.url) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tu_sheets_url", data.url);
+      }
+      return data.url;
+    }
+  } catch (err) {
+    console.error("Failed to fetch Google Sheets URL from server", err);
+  }
+  
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("tu_sheets_url") || "";
+  }
+  return "";
 }
 
 export async function saveSheetsUrl(url: string) {
+  if (typeof window !== "undefined" && url) {
+    localStorage.setItem("tu_sheets_url", url);
+  }
   return await safeFetchJson("/api/sheets/url", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

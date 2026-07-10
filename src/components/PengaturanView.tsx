@@ -22,7 +22,12 @@ interface PengaturanViewProps {
 export default function PengaturanView({ settings, setSettings, onWipeData }: PengaturanViewProps) {
   const [form, setForm] = useState<Setting>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [sheetsUrl, setSheetsUrl] = useState("");
+  const [sheetsUrl, setSheetsUrl] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("tu_sheets_url") || "";
+    }
+    return "";
+  });
   const [isTestingUrl, setIsTestingUrl] = useState(false);
   const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
@@ -49,7 +54,9 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
     async function loadUrl() {
       try {
         const url = await getSheetsUrl();
-        setSheetsUrl(url);
+        if (url) {
+          setSheetsUrl(url);
+        }
       } catch (err) {
         console.error("Failed to load Google Sheets URL", err);
       }
