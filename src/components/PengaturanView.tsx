@@ -26,6 +26,24 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
   const [isTestingUrl, setIsTestingUrl] = useState(false);
   const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
+  const getUrlWarning = (url: string) => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    if (trimmed.includes("docs.google.com/spreadsheets")) {
+      return "Peringatan: Ini adalah URL Google Spreadsheet biasa. Anda harus melakukan Deploy Apps Script terlebih dahulu dan menggunakan URL Web App (berakhiran /exec) dari sana.";
+    }
+    if (trimmed.includes("script.google.com") && trimmed.includes("/edit")) {
+      return "Peringatan: Ini adalah URL editor Apps Script. Harap lakukan Deploy -> New Deployment (Penerapan Baru) di kanan atas, lalu salin URL Web App yang berakhiran /exec.";
+    }
+    if (!trimmed.startsWith("https://script.google.com/macros/s/")) {
+      return "Format URL tidak cocok. URL Web App Google Apps Script yang benar harus diawali dengan 'https://script.google.com/macros/s/'";
+    }
+    if (!trimmed.endsWith("/exec") && !trimmed.includes("/exec?")) {
+      return "Saran: URL Web App biasanya diakhiri dengan '/exec'. Harap periksa kembali hasil salinan URL Web App Anda.";
+    }
+    return null;
+  };
+
   // Load current Google Apps Script URL on mount
   useEffect(() => {
     async function loadUrl() {
@@ -355,7 +373,9 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
                 value={sheetsUrl}
                 onChange={(e) => setSheetsUrl(e.target.value)}
                 placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 font-mono text-slate-600"
+                className={`flex-1 px-3 py-1.5 border rounded-lg text-xs focus:outline-none focus:border-blue-500 font-mono text-slate-600 ${
+                  getUrlWarning(sheetsUrl) ? "border-amber-300 bg-amber-50/20" : "border-slate-200"
+                }`}
               />
               <button
                 type="button"
@@ -374,6 +394,13 @@ export default function PengaturanView({ settings, setSettings, onWipeData }: Pe
                 )}
               </button>
             </div>
+            
+            {getUrlWarning(sheetsUrl) && (
+              <div className="text-[11px] text-amber-800 flex items-start gap-2 bg-amber-50 border border-amber-200/60 p-2.5 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p>{getUrlWarning(sheetsUrl)}</p>
+              </div>
+            )}
           </div>
 
           {testStatus && (
